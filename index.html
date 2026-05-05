@@ -460,37 +460,6 @@ function sendMsg(override) {
   } else {
     appendMsg(cleanReply, 'bot');
   }
-  // ... resto invariato
-
-    // Mostra testo + card nella stessa bubble se c'è un prodotto, altrimenti solo testo
-    if (productCard) {
-      var card = productCard;
-      var cardHtml =
-        '<div style="border-top:1px solid var(--cream-border);margin-top:10px;padding-top:10px;">' +
-          (card.url_foto ? '<img src="' + card.url_foto + '" alt="' + (card.nome||'') + '" style="width:100%;height:160px;object-fit:cover;display:block;border-radius:8px;margin-bottom:10px;" onerror="this.style.display=&quot;none&quot;">' : '') +
-          '<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">' + (card.nome||'') + '</div>' +
-          (card.prezzo ? '<div style="font-size:13px;color:var(--green-dark);font-weight:500;margin-bottom:6px;">€' + parseFloat(card.prezzo).toFixed(2) + '</div>' : '') +
-          (card.descrizione ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">' + card.descrizione + '</div>' : '') +
-          (card.url_prodotto ? '<a href="' + card.url_prodotto + '" target="_blank" style="display:inline-block;padding:8px 16px;background:var(--green-dark);color:#e8e0d0;border-radius:20px;font-size:12px;text-decoration:none;letter-spacing:.03em;">Scopri il prodotto →</a>' : '') +
-        '</div>';
-      var msgs2 = document.getElementById('msgs');
-      var typing2 = document.getElementById('typing');
-      var wrap = document.createElement('div');
-      wrap.className = 'msg bot';
-      var bubble = document.createElement('div');
-      bubble.className = 'bubble';
-      bubble.style.maxWidth = '88%';
-      bubble.innerHTML = cleanReply.replace(/\n/g, '<br>') + cardHtml;
-      var ts = document.createElement('div');
-      ts.className = 'ts';
-      ts.textContent = getNow();
-      wrap.appendChild(bubble);
-      wrap.appendChild(ts);
-      msgs2.insertBefore(wrap, typing2);
-      msgs2.scrollTop = 99999;
-    } else {
-      appendMsg(cleanReply, 'bot');
-    }
 
     // Se la risposta menziona preventivo, mostra shortcut
     if (cleanReply.toLowerCase().indexOf('preventivo') !== -1) {
