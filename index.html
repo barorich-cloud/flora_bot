@@ -414,6 +414,28 @@ function sendMsg(override) {
     var reply = data.reply || data.output || data.ai_response || '…';
     appendMsg(reply, 'bot');
 
+    // Renderizza product card se presente
+    if (data.has_product_card && data.product_card) {
+      var card = data.product_card;
+      var cardHtml =
+        '<div style="margin-top:10px;border:1px solid var(--cream-border);border-radius:12px;overflow:hidden;background:#fff;">' +
+          (card.url_foto ? '<img src="' + card.url_foto + '" alt="' + card.nome + '" style="width:100%;height:160px;object-fit:cover;display:block;">' : '') +
+          '<div style="padding:12px;">' +
+            '<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">' + card.nome + '</div>' +
+            (card.prezzo ? '<div style="font-size:13px;color:var(--green-dark);font-weight:500;margin-bottom:6px;">€' + parseFloat(card.prezzo).toFixed(2) + '</div>' : '') +
+            (card.descrizione ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">' + card.descrizione + '</div>' : '') +
+            (card.url_prodotto ? '<a href="' + card.url_prodotto + '" target="_blank" style="display:inline-block;padding:8px 16px;background:var(--green-dark);color:#e8e0d0;border-radius:20px;font-size:12px;text-decoration:none;letter-spacing:.03em;">Scopri il prodotto →</a>' : '') +
+          '</div>' +
+        '</div>';
+      var msgs = document.getElementById('msgs');
+      var typing2 = document.getElementById('typing');
+      var cardWrap = document.createElement('div');
+      cardWrap.className = 'msg bot';
+      cardWrap.innerHTML = '<div class="bubble" style="padding:0;overflow:hidden;background:transparent;border:none;">' + cardHtml + '</div>';
+      msgs.insertBefore(cardWrap, typing2);
+      msgs.scrollTop = 99999;
+    }
+
     // Se la risposta menziona preventivo, mostra shortcut
     if (reply.toLowerCase().indexOf('preventivo') !== -1) {
       var quick = document.getElementById('quick');
