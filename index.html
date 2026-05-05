@@ -413,15 +413,20 @@ function sendMsg(override) {
     typing.classList.remove('on');
     var rawReply = data.reply || data.output || data.ai_response || '…';
 
-    // Parser blocco [PRODUCT_CARD]
+    // Legge product_card dai campi n8n oppure parsifica dal testo come fallback
     var productCard = null;
     var cleanReply = rawReply;
-    var cardMatch = rawReply.match(/\[PRODUCT_CARD\]([\s\S]*?)\[\/PRODUCT_CARD\]/);
-    if (cardMatch) {
-      try {
-        productCard = JSON.parse(cardMatch[1].trim());
-        cleanReply = rawReply.replace(/\[PRODUCT_CARD\][\s\S]*?\[\/PRODUCT_CARD\]/, '').trim();
-      } catch(e) { productCard = null; }
+
+    if (data.has_product_card && data.product_card) {
+      productCard = data.product_card;
+    } else {
+      var cardMatch = rawReply.match(/\[PRODUCT_CARD\]([\s\S]*?)\[\/PRODUCT_CARD\]/);
+      if (cardMatch) {
+        try {
+          productCard = JSON.parse(cardMatch[1].trim());
+          cleanReply = rawReply.replace(/\[PRODUCT_CARD\][\s\S]*?\[\/PRODUCT_CARD\]/, '').trim();
+        } catch(e) { productCard = null; }
+      }
     }
 
     appendMsg(cleanReply, 'bot');
@@ -431,7 +436,7 @@ function sendMsg(override) {
       var card = productCard;
       var cardHtml =
         '<div style="margin-top:10px;border:1px solid var(--cream-border);border-radius:12px;overflow:hidden;background:#fff;">' +
-          (card.url_foto ? '<img src="' + card.url_foto + '" alt="' + (card.nome||'') + '" style="width:100%;height:160px;object-fit:cover;display:block;" onerror="this.style.display=\'none\'">' : '') +
+          (card.url_foto ? '<img src="' + card.url_foto + '" alt="' + card.nome + '" style="width:100%;height:160px;object-fit:cover;display:block;">' : '') +
           '<div style="padding:12px;">' +
             '<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">' + card.nome + '</div>' +
             (card.prezzo ? '<div style="font-size:13px;color:var(--green-dark);font-weight:500;margin-bottom:6px;">€' + parseFloat(card.prezzo).toFixed(2) + '</div>' : '') +
@@ -443,13 +448,13 @@ function sendMsg(override) {
       var typing2 = document.getElementById('typing');
       var cardWrap = document.createElement('div');
       cardWrap.className = 'msg bot';
-      cardWrap.innerHTML = '<div class="bubble" style="padding:0;overflow:hidden;background:transparent;border:none;max-width:280px;">' + cardHtml + '</div>';
+      cardWrap.innerHTML = '<div class="bubble" style="padding:0;overflow:hidden;background:transparent;border:none;">' + cardHtml + '</div>';
       msgs.insertBefore(cardWrap, typing2);
       msgs.scrollTop = 99999;
     }
 
     // Se la risposta menziona preventivo, mostra shortcut
-    if (cleanReply.toLowerCase().indexOf('preventivo') !== -1) {
+    if (reply.toLowerCase().indexOf('preventivo') !== -1) {
       var quick = document.getElementById('quick');
       quick.style.display = 'flex';
       quick.innerHTML = '<button class="qb" onclick="switchTab(\'quote\')">📄 Vai al preventivo</button>';
