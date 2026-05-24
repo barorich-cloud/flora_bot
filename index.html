@@ -261,7 +261,7 @@ textarea::placeholder{color:#b0b0ac}
         <div class="field"><label>Note</label><textarea class="tf" id="bk-notes" placeholder="Descrivi brevemente la tua richiesta…"></textarea></div>
         <div class="nav-btns">
           <button class="btn-back" onclick="backToCal()">← Indietro</button>
-          <button class="btn-next" onclick="submitBooking()">Conferma prenotazione</button>
+          <button class="btn-next" id="bk-submit-btn" onclick="submitBooking()">Conferma prenotazione</button>
         </div>
       </div>
 
@@ -359,7 +359,7 @@ textarea::placeholder{color:#b0b0ac}
           <div class="field"><label>Note aggiuntive</label><textarea class="tf" id="q-notes" style="height:90px" placeholder="Stile preferito, riferimenti visivi, richieste particolari…"></textarea></div>
           <div class="nav-btns">
             <button class="btn-back" onclick="qStep(1)">← Indietro</button>
-            <button class="btn-next" onclick="submitQuote()">Invia richiesta</button>
+            <button class="btn-next" id="q-submit-btn" onclick="submitQuote()">Invia richiesta</button>
           </div>
         </div>
       </div>
@@ -393,7 +393,7 @@ textarea::placeholder{color:#b0b0ac}
 </div>
 
 <script>
-var WEBHOOK = 'https://baroarchive239.app.n8n.cloud/webhook/FLORA_BOT';
+var WEBHOOK = 'https://n8n.baron8n.it/webhook-test/FLORA_BOT';
 var SESSION_ID = 'demo_' + Math.random().toString(36).substr(2, 9);
 
 // Imposta timestamp benvenuto
@@ -573,15 +573,15 @@ function sendMsg(override) {
       quick.innerHTML = '<button class="qb" onclick="switchTab(\'quote\')">📄 Vai al preventivo</button>';
     }
   })
-  .catch(function(err) {
+  .catch(function() {
     typing.classList.remove('on');
-    // Non mostrare errore se il webhook in test mode chiude la connessione dopo aver risposto
+    appendMsg('Si è verificato un errore di connessione. Riprova tra qualche istante.', 'bot');
   });
 }
 
 // ── CALENDARIO ──
 var calYear, calMonth, selDate = null, selSlot = null;
-var WEBHOOK_DISPONIBILITA = 'https://baroarchive239.app.n8n.cloud/webhook/FLORA_DISPONIBILITA';
+var WEBHOOK_DISPONIBILITA = 'https://n8n.baron8n.it/webhook-test/FLORA_DISPONIBILITA';
 var MONTHS_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 var MONTHS_IT_LC = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 
@@ -797,30 +797,40 @@ function showBkForm() {
   document.getElementById('bk-summary-label').textContent = d + ' · ' + selSlot;
 }
 
-function submitBooking() {
+async function submitBooking() {
   var name = document.getElementById('bk-name').value.trim();
   var email = document.getElementById('bk-email').value.trim();
   if (!name || !email) { alert('Inserisci nome e email per procedere.'); return; }
   var dateStr = selDate.getDate() + ' ' + MONTHS_IT_LC[selDate.getMonth()] + ' ' + selDate.getFullYear();
-  fetch(WEBHOOK, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      session_id: SESSION_ID,
-      action_type: 'booking',
-      booking: {
-        name: name, email: email,
-        phone: document.getElementById('bk-phone').value,
-        topic: document.getElementById('bk-topic').value,
-        notes: document.getElementById('bk-notes').value,
-        date: dateStr, time: selSlot
-      }
-    })
-  }).catch(function() {});
-  document.getElementById('bk-form').style.display = 'none';
-  document.getElementById('bk-success').style.display = 'block';
-  document.getElementById('bk-confirm-text').innerHTML =
-    '<strong>' + name + '</strong>, ci vediamo il <strong>' + dateStr + ' alle ' + selSlot + '</strong>.<br>Riceverai una conferma a <strong>' + email + '</strong>.';
+  var btn = document.getElementById('bk-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Invio in corso…';
+  try {
+    var res = await fetch(WEBHOOK, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        session_id: SESSION_ID,
+        action_type: 'booking',
+        booking: {
+          name: name, email: email,
+          phone: document.getElementById('bk-phone').value,
+          topic: document.getElementById('bk-topic').value,
+          notes: document.getElementById('bk-notes').value,
+          date: dateStr, time: selSlot
+        }
+      })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    document.getElementById('bk-form').style.display = 'none';
+    document.getElementById('bk-success').style.display = 'block';
+    document.getElementById('bk-confirm-text').innerHTML =
+      '<strong>' + name + '</strong>, ci vediamo il <strong>' + dateStr + ' alle ' + selSlot + '</strong>.<br>Riceverai una conferma a <strong>' + email + '</strong>.';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Conferma prenotazione';
+    alert('Errore durante l\'invio. Controlla la connessione e riprova.');
+  }
 }
 
 // ── PREVENTIVO ──
@@ -840,6 +850,7 @@ function qStep(n) {
   document.getElementById('sd-' + qStepCur).classList.add('done');
   qStepCur = n;
   document.getElementById('qstep-' + n).classList.add('active');
+  document.getElementById('sd-' + n).classList.remove('done');
   document.getElementById('sd-' + n).classList.add('active');
   if (n === 2) buildSummary();
 }
@@ -854,27 +865,37 @@ function buildSummary() {
     '<strong>Budget:</strong> ' + (document.getElementById('q-budget').value || '—');
 }
 
-function submitQuote() {
+async function submitQuote() {
   var name = document.getElementById('q-name').value.trim();
   var email = document.getElementById('q-email').value.trim();
   if (!name || !email) { alert('Inserisci nome e email per procedere.'); return; }
-  fetch(WEBHOOK, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      session_id: SESSION_ID,
-      action_type: 'quote_request',
-      quote: {
-        service: qSvc, name: name, email: email,
-        date: qSelDate ? formatDateIT(qSelDate.getFullYear() + '-' + String(qSelDate.getMonth()+1).padStart(2,'0') + '-' + String(qSelDate.getDate()).padStart(2,'0')) : '',
-        location: document.getElementById('q-location').value,
-        budget: document.getElementById('q-budget').value,
-        notes: document.getElementById('q-notes').value
-      }
-    })
-  }).catch(function() {});
-  document.getElementById('quote-main').style.display = 'none';
-  document.getElementById('q-success').style.display = 'block';
+  var btn = document.getElementById('q-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Invio in corso…';
+  try {
+    var res = await fetch(WEBHOOK, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        session_id: SESSION_ID,
+        action_type: 'quote_request',
+        quote: {
+          service: qSvc, name: name, email: email,
+          date: qSelDate ? formatDateIT(qSelDate.getFullYear() + '-' + String(qSelDate.getMonth()+1).padStart(2,'0') + '-' + String(qSelDate.getDate()).padStart(2,'0')) : '',
+          location: document.getElementById('q-location').value,
+          budget: document.getElementById('q-budget').value,
+          notes: document.getElementById('q-notes').value
+        }
+      })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    document.getElementById('quote-main').style.display = 'none';
+    document.getElementById('q-success').style.display = 'block';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Invia richiesta';
+    alert('Errore durante l\'invio. Controlla la connessione e riprova.');
+  }
 }
 
 // ── INIT ──
